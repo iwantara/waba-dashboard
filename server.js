@@ -7,7 +7,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const API_BASE = 'https://api-prod.kirim.chat/api/v1/public';
+const API_BASE = 'https://api.kirim.chat/api/v1/public';
 
 // Store messages in memory & SSE clients
 const messages = [];

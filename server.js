@@ -103,8 +103,7 @@ app.post('/api/send', async (req, res) => {
     const payload = {
       channel: 'whatsapp',
       to,
-      type: msgType,
-      message_type: msgType
+      type: msgType
     };
 
     if (msgType === 'image') {
@@ -112,6 +111,8 @@ app.post('/api/send', async (req, res) => {
     } else {
       payload.text = text; // { body }
     }
+
+    console.log('Sending payload:', JSON.stringify(payload, null, 2));
 
     const response = await axios.post(`${API_BASE}/messages/send`, payload, {
       headers: {
@@ -136,7 +137,11 @@ app.post('/api/send', async (req, res) => {
 
     res.json(response.data);
   } catch (err) {
-    console.error('Send error:', err.response?.data || err.message);
+    console.error('=== SEND ERROR ===');
+    console.error('Status:', err.response?.status);
+    console.error('Response:', JSON.stringify(err.response?.data, null, 2));
+    console.error('Payload sent:', JSON.stringify(payload, null, 2));
+    console.error('==================');
     res.status(err.response?.status || 500).json({
       error: err.response?.data || err.message
     });
@@ -146,6 +151,38 @@ app.post('/api/send', async (req, res) => {
 // --- Get messages history (since server start) ---
 app.get('/api/messages', (req, res) => {
   res.json(messages);
+});
+
+// --- Test API Key: cek apakah key masih valid ---
+app.get('/api/test-key', async (req, res) => {
+  const apiKey = process.env.KIRIMCHAT_API_KEY;
+  if (!apiKey || apiKey === 'kc_live_xxxxx') {
+    return res.json({ valid: false, error: 'API Key belum dikonfigurasi' });
+  }
+
+  try {
+    // Coba kirim request sederhana untuk cek auth
+    const resp = await axios.get(`${API_BASE}/health`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+      timeout: 10000
+    });
+    res.json({
+      valid: true,
+      keyPrefix: apiKey.substring(0, 15) + '...',
+      apiResponse: resp.data,
+      apiStatus: resp.status
+    });
+  } catch (err) {
+    res.json({
+      valid: false,
+      keyPrefix: apiKey.substring(0, 15) + '...',
+      error: err.response?.data || err.message,
+      status: err.response?.status,
+      hint: err.response?.status === 401
+        ? 'API Key tidak valid atau sudah expired. Buat key baru di KirimChat > Developers > API Keys'
+        : 'Cek koneksi atau URL API'
+    });
+  }
 });
 
 // --- Health check ---

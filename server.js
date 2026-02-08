@@ -96,24 +96,24 @@ app.post('/api/send', async (req, res) => {
     return res.status(400).json({ error: 'API Key belum dikonfigurasi di .env' });
   }
 
+  const { to, type, text, image } = req.body;
+
+  const msgType = type || 'text';
+  const payload = {
+    channel: 'whatsapp',
+    to,
+    type: msgType
+  };
+
+  if (msgType === 'image') {
+    payload.image = image; // { link, caption }
+  } else {
+    payload.text = text; // { body }
+  }
+
+  console.log('Sending payload:', JSON.stringify(payload, null, 2));
+
   try {
-    const { to, type, text, image } = req.body;
-
-    const msgType = type || 'text';
-    const payload = {
-      channel: 'whatsapp',
-      to,
-      type: msgType
-    };
-
-    if (msgType === 'image') {
-      payload.image = image; // { link, caption }
-    } else {
-      payload.text = text; // { body }
-    }
-
-    console.log('Sending payload:', JSON.stringify(payload, null, 2));
-
     const response = await axios.post(`${API_BASE}/messages/send`, payload, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -142,8 +142,9 @@ app.post('/api/send', async (req, res) => {
     console.error('Response:', JSON.stringify(err.response?.data, null, 2));
     console.error('Payload sent:', JSON.stringify(payload, null, 2));
     console.error('==================');
+    const errMsg = err.response?.data?.message || err.response?.data?.error || err.message || 'Unknown error';
     res.status(err.response?.status || 500).json({
-      error: err.response?.data || err.message
+      error: errMsg
     });
   }
 });

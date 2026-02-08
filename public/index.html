@@ -301,7 +301,7 @@
           })
         });
         const data = await res.json();
-        if (!res.ok) alert('Gagal kirim: ' + JSON.stringify(data.error));
+        if (!res.ok) alert('Gagal kirim: ' + (data.error || 'Unknown error'));
       } catch (err) {
         alert('Error: ' + err.message);
       }
@@ -326,7 +326,7 @@
           })
         });
         const data = await res.json();
-        if (!res.ok) alert('Gagal kirim gambar: ' + JSON.stringify(data.error));
+        if (!res.ok) alert('Gagal kirim gambar: ' + (data.error || 'Unknown error'));
       } catch (err) {
         alert('Error: ' + err.message);
       }

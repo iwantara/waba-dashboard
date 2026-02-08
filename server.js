@@ -118,7 +118,9 @@ app.post('/api/send', async (req, res) => {
     const response = await axios.post(`${API_BASE}/messages/send`, payload, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'User-Agent': 'WABADashboard/1.0',
+        'Accept': 'application/json'
       }
     });
 
@@ -173,7 +175,9 @@ app.get('/api/test-key', async (req, res) => {
     }, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'User-Agent': 'WABADashboard/1.0',
+        'Accept': 'application/json'
       },
       timeout: 10000
     });

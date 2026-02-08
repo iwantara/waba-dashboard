@@ -99,13 +99,15 @@ app.post('/api/send', async (req, res) => {
   try {
     const { to, type, text, image } = req.body;
 
+    const msgType = type || 'text';
     const payload = {
       channel: 'whatsapp',
       to,
-      type: type || 'text'
+      type: msgType,
+      message_type: msgType
     };
 
-    if (type === 'image') {
+    if (msgType === 'image') {
       payload.image = image; // { link, caption }
     } else {
       payload.text = text; // { body }

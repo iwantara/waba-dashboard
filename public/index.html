@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WABA Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; background: #f0f2f5; }
+
+    /* Header */
+    .header { background: #075e54; color: white; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header .status { font-size: 12px; opacity: 0.8; }
+
+    /* Main layout */
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    /* Sidebar */
+    .sidebar { width: 320px; background: white; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 12px 16px; border-bottom: 1px solid #e0e0e0; }
+    .sidebar-header input { width: 100%; padding: 8px 12px; border: none; background: #f0f2f5; border-radius: 8px; font-size: 14px; outline: none; }
+    .contact-list { flex: 1; overflow-y: auto; }
+    .contact-item { padding: 14px 16px; border-bottom: 1px solid #f0f2f5; cursor: pointer; display: flex; align-items: center; gap: 12px; }
+    .contact-item:hover { background: #f5f6f6; }
+    .contact-item.active { background: #ebebeb; }
+    .contact-avatar { width: 42px; height: 42px; border-radius: 50%; background: #25d366; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 16px; flex-shrink: 0; }
+    .contact-info { flex: 1; min-width: 0; }
+    .contact-name { font-size: 15px; font-weight: 500; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .contact-last { font-size: 13px; color: #667781; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .contact-time { font-size: 11px; color: #667781; flex-shrink: 0; }
+    .new-chat-btn { margin: 12px 16px; padding: 10px; background: #25d366; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; }
+    .new-chat-btn:hover { background: #1da851; }
+
+    /* Chat area */
+    .chat-area { flex: 1; display: flex; flex-direction: column; background: #efeae2; }
+    .chat-bg { background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5 L35 15 L30 25 L25 15Z' fill='%23d4cfc4' opacity='0.3'/%3E%3C/svg%3E"); }
+    .chat-header { background: #f0f2f5; padding: 12px 20px; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 12px; }
+    .chat-header-avatar { width: 36px; height: 36px; border-radius: 50%; background: #25d366; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+    .chat-header-name { font-size: 15px; font-weight: 500; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 4px; }
+    .chat-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #667781; font-size: 14px; flex-direction: column; gap: 8px; }
+
+    /* Message bubbles */
+    .msg { max-width: 65%; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.4; position: relative; word-wrap: break-word; }
+    .msg-in { background: white; align-self: flex-start; border-top-left-radius: 0; }
+    .msg-out { background: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; }
+    .msg-time { font-size: 11px; color: #667781; margin-top: 4px; text-align: right; }
+    .msg-img { max-width: 280px; border-radius: 6px; margin-bottom: 4px; cursor: pointer; }
+    .msg-img:hover { opacity: 0.9; }
+
+    /* Input area */
+    .input-area { background: #f0f2f5; padding: 10px 16px; display: flex; align-items: flex-end; gap: 8px; }
+    .input-area textarea { flex: 1; padding: 10px 14px; border: none; border-radius: 8px; font-size: 14px; resize: none; outline: none; max-height: 120px; line-height: 1.4; font-family: inherit; }
+    .input-area button { width: 42px; height: 42px; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .btn-send { background: #25d366; color: white; }
+    .btn-send:hover { background: #1da851; }
+    .btn-attach { background: transparent; color: #54656f; font-size: 20px; }
+    .btn-attach:hover { color: #075e54; }
+
+    /* No chat selected */
+    .no-chat { flex: 1; display: flex; align-items: center; justify-content: center; background: #f0f2f5; flex-direction: column; gap: 12px; color: #667781; }
+    .no-chat h2 { color: #41525d; font-weight: 400; font-size: 28px; }
+
+    /* New chat modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: white; border-radius: 12px; padding: 24px; width: 400px; max-width: 90vw; }
+    .modal h3 { margin-bottom: 16px; color: #111; }
+    .modal label { display: block; font-size: 13px; color: #667781; margin-bottom: 4px; margin-top: 12px; }
+    .modal input, .modal textarea { width: 100%; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none; font-family: inherit; }
+    .modal input:focus, .modal textarea:focus { border-color: #25d366; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+    .modal-actions button { padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
+    .btn-cancel { background: #f0f2f5; color: #111; }
+    .btn-primary { background: #25d366; color: white; }
+    .btn-primary:hover { background: #1da851; }
+
+    /* Image preview */
+    .img-preview { margin-top: 8px; max-width: 200px; border-radius: 8px; display: none; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>WABA Dashboard</h1>
+      <div class="status" id="connStatus">Connecting...</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <input type="text" id="searchInput" placeholder="Cari nomor...">
+      </div>
+      <div class="contact-list" id="contactList"></div>
+      <button class="new-chat-btn" onclick="showNewChat()">+ Chat Baru</button>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="chat-area" id="chatArea">
+      <div class="no-chat" id="noChat">
+        <h2>WABA Dashboard</h2>
+        <p>Pilih chat atau mulai percakapan baru</p>
+      </div>
+
+      <div id="chatView" style="display:none; flex:1; display:none; flex-direction:column;">
+        <div class="chat-header">
+          <div class="chat-header-avatar" id="chatAvatar">?</div>
+          <div class="chat-header-name" id="chatName">-</div>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="input-area">
+          <button class="btn-attach" onclick="showImageModal()" title="Kirim Gambar">&#128247;</button>
+          <textarea id="msgInput" rows="1" placeholder="Ketik pesan..." onkeydown="handleKey(event)"></textarea>
+          <button class="btn-send" onclick="sendText()" title="Kirim">&#10148;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: New Chat -->
+  <div class="modal-overlay" id="newChatModal">
+    <div class="modal">
+      <h3>Chat Baru</h3>
+      <label>Nomor WhatsApp (format: 628xxx)</label>
+      <input type="text" id="newChatNumber" placeholder="6281234567890">
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('newChatModal')">Batal</button>
+        <button class="btn-primary" onclick="startNewChat()">Mulai Chat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Send Image -->
+  <div class="modal-overlay" id="imageModal">
+    <div class="modal">
+      <h3>Kirim Gambar</h3>
+      <label>URL Gambar</label>
+      <input type="text" id="imageUrl" placeholder="https://example.com/image.jpg" oninput="previewImage()">
+      <img class="img-preview" id="imgPreview">
+      <label>Caption (opsional)</label>
+      <input type="text" id="imageCaption" placeholder="Tulis caption...">
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('imageModal')">Batal</button>
+        <button class="btn-primary" onclick="sendImage()">Kirim</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- State ---
+    let conversations = {}; // { "628xxx": { messages: [], lastMsg: "", lastTime: "" } }
+    let activeChat = null;
+
+    // Load from localStorage
+    try {
+      const saved = localStorage.getItem('waba_conversations');
+      if (saved) conversations = JSON.parse(saved);
+    } catch {}
+
+    // --- SSE: listen for incoming messages ---
+    const evtSource = new EventSource('/api/events');
+    evtSource.addEventListener('message', (e) => {
+      const msg = JSON.parse(e.data);
+      handleMessage(msg);
+    });
+    evtSource.onopen = () => {
+      document.getElementById('connStatus').textContent = 'Connected';
+    };
+    evtSource.onerror = () => {
+      document.getElementById('connStatus').textContent = 'Disconnected - retrying...';
+    };
+
+    // Load existing messages from server
+    fetch('/api/messages').then(r => r.json()).then(msgs => {
+      msgs.forEach(m => handleMessage(m, true));
+      renderContacts();
+    });
+
+    // --- Handle incoming/outgoing message ---
+    function handleMessage(msg, silent) {
+      const phone = msg.direction === 'inbound' ? msg.from : msg.to;
+      if (!phone) return;
+
+      if (!conversations[phone]) {
+        conversations[phone] = { messages: [], lastMsg: '', lastTime: '' };
+      }
+
+      // Avoid duplicates
+      const exists = conversations[phone].messages.some(m => m.id === msg.id);
+      if (!exists) {
+        conversations[phone].messages.push(msg);
+        conversations[phone].lastMsg = msg.content || (msg.type === 'image' ? '[Gambar]' : '');
+        conversations[phone].lastTime = msg.timestamp;
+      }
+
+      saveConversations();
+      renderContacts();
+
+      if (activeChat === phone) {
+        renderMessages();
+      }
+    }
+
+    function saveConversations() {
+      try { localStorage.setItem('waba_conversations', JSON.stringify(conversations)); } catch {}
+    }
+
+    // --- Render contact list ---
+    function renderContacts() {
+      const list = document.getElementById('contactList');
+      const search = document.getElementById('searchInput').value.toLowerCase();
+
+      const sorted = Object.keys(conversations).sort((a, b) => {
+        const ta = conversations[a].lastTime || '';
+        const tb = conversations[b].lastTime || '';
+        return tb.localeCompare(ta);
+      });
+
+      list.innerHTML = sorted
+        .filter(phone => phone.toLowerCase().includes(search))
+        .map(phone => {
+          const c = conversations[phone];
+          const initials = phone.slice(-2);
+          const isActive = phone === activeChat ? 'active' : '';
+          const time = c.lastTime ? formatTime(c.lastTime) : '';
+          return `
+            <div class="contact-item ${isActive}" onclick="openChat('${phone}')">
+              <div class="contact-avatar">${initials}</div>
+              <div class="contact-info">
+                <div class="contact-name">${phone}</div>
+                <div class="contact-last">${escHtml(c.lastMsg)}</div>
+              </div>
+              <div class="contact-time">${time}</div>
+            </div>`;
+        }).join('');
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderContacts);
+
+    // --- Open chat ---
+    function openChat(phone) {
+      activeChat = phone;
+      document.getElementById('noChat').style.display = 'none';
+      const cv = document.getElementById('chatView');
+      cv.style.display = 'flex';
+      document.getElementById('chatAvatar').textContent = phone.slice(-2);
+      document.getElementById('chatName').textContent = phone;
+      renderContacts();
+      renderMessages();
+      document.getElementById('msgInput').focus();
+    }
+
+    // --- Render messages ---
+    function renderMessages() {
+      const container = document.getElementById('chatMessages');
+      if (!activeChat || !conversations[activeChat]) {
+        container.innerHTML = '<div class="chat-empty">Belum ada pesan</div>';
+        return;
+      }
+
+      const msgs = conversations[activeChat].messages;
+      container.innerHTML = msgs.map(m => {
+        const cls = m.direction === 'inbound' ? 'msg-in' : 'msg-out';
+        const time = m.timestamp ? formatTime(m.timestamp) : '';
+        let content = escHtml(m.content || '');
+
+        if (m.type === 'image' && m.imageUrl) {
+          content = `<img class="msg-img" src="${escHtml(m.imageUrl)}" onclick="window.open('${escHtml(m.imageUrl)}','_blank')" alt="image"><br>${content}`;
+        }
+
+        return `<div class="msg ${cls}">${content}<div class="msg-time">${time}</div></div>`;
+      }).join('');
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    // --- Send text message ---
+    async function sendText() {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text || !activeChat) return;
+
+      input.value = '';
+      input.style.height = 'auto';
+
+      try {
+        const res = await fetch('/api/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: activeChat,
+            type: 'text',
+            text: { body: text }
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) alert('Gagal kirim: ' + JSON.stringify(data.error));
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    // --- Send image ---
+    async function sendImage() {
+      const url = document.getElementById('imageUrl').value.trim();
+      const caption = document.getElementById('imageCaption').value.trim();
+      if (!url || !activeChat) return;
+
+      closeModal('imageModal');
+
+      try {
+        const res = await fetch('/api/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: activeChat,
+            type: 'image',
+            image: { link: url, caption: caption || undefined }
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) alert('Gagal kirim gambar: ' + JSON.stringify(data.error));
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+
+      document.getElementById('imageUrl').value = '';
+      document.getElementById('imageCaption').value = '';
+      document.getElementById('imgPreview').style.display = 'none';
+    }
+
+    // --- Key handler ---
+    function handleKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendText();
+      }
+    }
+
+    // Auto-resize textarea
+    document.getElementById('msgInput').addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    // --- Modals ---
+    function showNewChat() {
+      document.getElementById('newChatModal').classList.add('show');
+      document.getElementById('newChatNumber').focus();
+    }
+
+    function showImageModal() {
+      if (!activeChat) return;
+      document.getElementById('imageModal').classList.add('show');
+      document.getElementById('imageUrl').focus();
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+
+    function startNewChat() {
+      const num = document.getElementById('newChatNumber').value.trim();
+      if (!num) return;
+      if (!conversations[num]) {
+        conversations[num] = { messages: [], lastMsg: '', lastTime: '' };
+        saveConversations();
+      }
+      closeModal('newChatModal');
+      document.getElementById('newChatNumber').value = '';
+      openChat(num);
+    }
+
+    function previewImage() {
+      const url = document.getElementById('imageUrl').value.trim();
+      const preview = document.getElementById('imgPreview');
+      if (url) {
+        preview.src = url;
+        preview.style.display = 'block';
+        preview.onerror = () => { preview.style.display = 'none'; };
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+
+    // --- Helpers ---
+    function formatTime(ts) {
+      try {
+        const d = new Date(ts);
+        const now = new Date();
+        const isToday = d.toDateString() === now.toDateString();
+        if (isToday) return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        return d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' }) + ' ' +
+               d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      } catch { return ''; }
+    }
+
+    function escHtml(s) {
+      if (!s) return '';
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Initial render
+    renderContacts();
+  </script>
+</body>
+</html>

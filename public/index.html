@@ -297,7 +297,7 @@
           body: JSON.stringify({
             to: activeChat,
             type: 'text',
-            text: { body: text }
+            content: text
           })
         });
         const data = await res.json();
@@ -322,7 +322,8 @@
           body: JSON.stringify({
             to: activeChat,
             type: 'image',
-            image: { link: url, caption: caption || undefined }
+            media_url: url,
+            caption: caption || ''
           })
         });
         const data = await res.json();

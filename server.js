@@ -7,7 +7,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const API_BASE = 'https://api.kirim.chat/api/v1/public';
+const API_BASE = 'https://api-prod.kirim.chat/api/v1/public';
 
 // Store messages in memory & SSE clients
 const messages = [];
@@ -96,19 +96,20 @@ app.post('/api/send', async (req, res) => {
     return res.status(400).json({ error: 'API Key belum dikonfigurasi di .env' });
   }
 
-  const { to, type, text, image } = req.body;
+  const { to, type, text, image, content, media_url, caption } = req.body;
 
   const msgType = type || 'text';
   const payload = {
     channel: 'whatsapp',
-    to,
-    type: msgType
+    phone_number: to,
+    message_type: msgType
   };
 
   if (msgType === 'image') {
-    payload.image = image; // { link, caption }
+    payload.media_url = media_url || image?.link;
+    payload.caption = caption || image?.caption || '';
   } else {
-    payload.text = text; // { body }
+    payload.content = content || text?.body || '';
   }
 
   console.log('Sending payload:', JSON.stringify(payload, null, 2));
@@ -123,12 +124,12 @@ app.post('/api/send', async (req, res) => {
 
     // Store outbound message locally
     const outMsg = {
-      id: response.data.message_id || Date.now().toString(),
+      id: response.data?.data?.message_id || Date.now().toString(),
       to,
       direction: 'outbound',
-      type: type || 'text',
-      content: type === 'image' ? (image?.caption || '') : (text?.body || ''),
-      imageUrl: type === 'image' ? image?.link : null,
+      type: msgType,
+      content: msgType === 'image' ? (payload.caption || '') : (payload.content || ''),
+      imageUrl: msgType === 'image' ? payload.media_url : null,
       channel: 'whatsapp',
       timestamp: new Date().toISOString()
     };
@@ -166,9 +167,9 @@ app.get('/api/test-key', async (req, res) => {
     // Kalau 401 = key invalid, kalau 422/400 = key valid tapi payload salah (expected)
     const resp = await axios.post(`${API_BASE}/messages/send`, {
       channel: 'whatsapp',
-      to: '000',
-      type: 'text',
-      text: { body: 'test' }
+      phone_number: '000',
+      message_type: 'text',
+      content: 'test'
     }, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,

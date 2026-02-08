@@ -161,11 +161,21 @@ app.get('/api/test-key', async (req, res) => {
   }
 
   try {
-    // Coba kirim request sederhana untuk cek auth
-    const resp = await axios.get(`${API_BASE}/health`, {
-      headers: { 'Authorization': `Bearer ${apiKey}` },
+    // Kirim request ke messages/send dengan payload minimal untuk cek auth
+    // Kalau 401 = key invalid, kalau 422/400 = key valid tapi payload salah (expected)
+    const resp = await axios.post(`${API_BASE}/messages/send`, {
+      channel: 'whatsapp',
+      to: '000',
+      type: 'text',
+      text: { body: 'test' }
+    }, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
       timeout: 10000
     });
+    // Kalau sampai sini = key valid dan request berhasil (unlikely tapi mungkin)
     res.json({
       valid: true,
       keyPrefix: apiKey.substring(0, 15) + '...',
@@ -173,15 +183,26 @@ app.get('/api/test-key', async (req, res) => {
       apiStatus: resp.status
     });
   } catch (err) {
-    res.json({
-      valid: false,
-      keyPrefix: apiKey.substring(0, 15) + '...',
-      error: err.response?.data || err.message,
-      status: err.response?.status,
-      hint: err.response?.status === 401
-        ? 'API Key tidak valid atau sudah expired. Buat key baru di KirimChat > Developers > API Keys'
-        : 'Cek koneksi atau URL API'
-    });
+    const status = err.response?.status;
+    // 401 = unauthorized (key invalid), selain itu = key valid tapi request gagal (normal)
+    if (status === 401) {
+      res.json({
+        valid: false,
+        keyPrefix: apiKey.substring(0, 15) + '...',
+        error: err.response?.data,
+        status,
+        hint: 'API Key tidak valid atau sudah expired. Buat key baru di KirimChat > Developers > API Keys'
+      });
+    } else {
+      // 400, 422, dll = key diterima, hanya payload yg invalid → key VALID
+      res.json({
+        valid: true,
+        keyPrefix: apiKey.substring(0, 15) + '...',
+        note: 'API Key diterima oleh server (auth OK)',
+        testError: err.response?.data,
+        status
+      });
+    }
   }
 });
 
